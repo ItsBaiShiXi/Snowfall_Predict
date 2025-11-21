@@ -1,0 +1,3 @@
+Title: Localized Snowfall Prediction in the Sierra Nevada using SNOTEL Telemetry
+
+Abstract: General weather forecasts often fail to capture the microclimates of high-elevation ski resorts. This project aims to predict daily new snowfall at three major Sierra Nevada resorts (Palisades Tahoe, Heavenly, and Mammoth) by training machine learning models on 20 years of historical SNOTEL sensor data. We will utilize a dataset of over 20,000 daily records, engineering features such as lagged temperature, snow density, and rolling precipitation trends. We expect to train Random Forest and XGBoost regressors that outperform baseline persistence models, while also using feature importance analysis to quantify the impact of local thermodynamics on powder days.
