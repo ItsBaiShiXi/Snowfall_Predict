@@ -77,9 +77,6 @@ ML-ready dataset with 68 engineered features. Fixed to prevent data leakage. Use
 
 ### Documentation
 
-#### [CLAUDE.md](CLAUDE.md)
-Developer guide for Claude Code. Contains detailed architecture documentation, API behavior notes, feature engineering logic, model results, and development commands.
-
 #### [MODEL_COMPARISON_SUMMARY.md](MODEL_COMPARISON_SUMMARY.md)
 Summary of model performance comparison between Linear Regression, Random Forest, and XGBoost. Includes metrics, feature importance analysis, and recommendations.
 
