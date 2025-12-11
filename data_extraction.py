@@ -15,7 +15,6 @@ stations = {
     "Mammoth": "846:CA:SNTL"
 }
 
-# --- CHANGE 1: Define the "Useful" Features List ---
 # We keep Snow/Temp, add Humidity (snow quality), Wind (drifting), and Soil (early season base).
 # We exclude the "trash" (Salinity, Turbidity, Battery Voltage).
 part_list = [
