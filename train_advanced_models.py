@@ -211,13 +211,26 @@ def train_xgboost(X_train, X_test, y_train, y_test, feature_cols, tune_hyperpara
 
         # Parameter distribution with regularization focus
         param_dist = {
-            'max_depth': [3, 4, 5, 6],              # Shallower trees
-            'min_child_weight': [1, 3, 5, 7],       # Require more data per leaf
-            'learning_rate': [0.01, 0.05, 0.1],     # Slower learning
-            'subsample': [0.6, 0.7, 0.8, 0.9],      # Random row sampling
-            'colsample_bytree': [0.6, 0.7, 0.8],    # Random feature sampling
-            'n_estimators': [100, 300, 500, 1000],  # More trees (with early stopping)
-            'gamma': [0, 0.1, 0.2]                  # Minimum loss reduction (regularization)
+            # It hit 6, so we start at 6 and go deeper
+            'max_depth': [6, 8, 10, 12],
+            
+            # It hit 7, so we go much higher to see if it wants simpler trees
+            'min_child_weight': [7, 10, 15, 20],
+            
+            # Keep 0.01 since it won, but maybe try slightly faster 0.02
+            'learning_rate': [0.005, 0.01, 0.02],
+            
+            # It wants less data per tree (high variance reduction)
+            'subsample': [0.5, 0.6, 0.7],
+            
+            # It liked 0.8, so center around that
+            'colsample_bytree': [0.7, 0.8, 0.9],
+            
+            # Low learning rate needs MORE trees. 1000 was the limit, go higher.
+            'n_estimators': [1000, 1500, 2000, 3000],
+            
+            # It hit 0.2 (max), so let's try significantly higher regularization
+            'gamma': [0.2, 0.5, 1.0, 2.0]
         }
 
         # Base model

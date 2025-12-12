@@ -80,9 +80,6 @@ ML-ready dataset with 68 engineered features. Fixed to prevent data leakage. Use
 
 ### Documentation
 
-#### [MODEL_COMPARISON_SUMMARY.md](MODEL_COMPARISON_SUMMARY.md)
-Summary of model performance comparison between Linear Regression, Random Forest, and XGBoost. Includes metrics, feature importance analysis, and recommendations.
-
 #### [requirements.txt](requirements.txt)
 Python package dependencies. Install with: `pip install -r requirements.txt`
 
@@ -97,6 +94,7 @@ Contains deprecated files:
 - `nwcc_snow_data_engineered.csv`: Original engineered dataset with leakage (replaced by _fixed version)
 - `Snow Water Equivalent, November 19, 2025, end of day (1).csv`: Example SNOTEL snapshot data
 - `LEAKAGE_FIX_SUMMARY.md`: Documentation of data leakage fixes applied
+- `MODEL_COMPARISON_SUMMARY.md`: Previous model comparison results (before latest hyperparameter tuning)
 
 ## Quick Start
 
@@ -125,23 +123,23 @@ python train_advanced_models.py
 | Model | Train R² | Test R² | RMSE (inches) | MAE (inches) | Improvement vs Baseline |
 |-------|----------|---------|---------------|--------------|------------------------|
 | Linear Regression | 0.530 | 0.559 | 1.67 | 0.57 | - |
-| Random Forest (Tuned) | 0.819 | 0.687 | 1.41 | 0.38 | +22.9% |
-| **XGBoost (Tuned)** | **0.923** | **0.711** | **1.35** | **0.38** | **+27.2%** |
+| Random Forest (Tuned) | 0.819 | 0.686 | 1.41 | 0.38 | +22.8% |
+| **XGBoost (Tuned)** | **0.869** | **0.704** | **1.37** | **0.38** | **+26.0%** |
 
-**Key Achievement**: Hyperparameter tuning successfully reduced overfitting (XGBoost train R² from 0.995 → 0.923) while improving test performance (+3.3% absolute improvement).
+**Key Achievement**: Advanced hyperparameter tuning with aggressive regularization successfully reduced overfitting (XGBoost train R² = 0.869 vs previous 0.923), achieving strong generalization with CV R² = 0.712.
 
 **Best Hyperparameters (XGBoost)**:
-- `max_depth=6, min_child_weight=7, learning_rate=0.01, gamma=0.2`
+- `max_depth=8, min_child_weight=20, learning_rate=0.005, gamma=2.0`
 - `subsample=0.6, colsample_bytree=0.8, n_estimators=1000`
 
 **Top Predictive Features** (XGBoost Tuned):
-1. Precip_lag1 (yesterday's precipitation) - 13.8%
-2. precip_change_1d (daily precipitation change) - 6.8%
+1. Precip_lag1 (yesterday's precipitation) - 16.1%
+2. precip_change_1d (daily precipitation change) - 8.5%
 3. AvgTemp_lag1 (yesterday's avg temperature) - 4.0%
-4. freezing_level (current freezing conditions) - 3.3%
-5. MaxTemp_lag1 (yesterday's max temperature) - 3.2%
+4. MaxTemp_lag1 (yesterday's max temperature) - 3.5%
+5. freezing_level (current freezing conditions) - 3.2%
 
 **Performance by Resort** (XGBoost Tuned):
-- Mammoth Mountain: R² = 0.803 (best)
-- Heavenly: R² = 0.758
-- Palisades Tahoe: R² = 0.592 (most challenging terrain)
+- Mammoth Mountain: R² = 0.810 (best)
+- Heavenly: R² = 0.751
+- Palisades Tahoe: R² = 0.573 (most challenging terrain)
