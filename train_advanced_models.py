@@ -207,56 +207,75 @@ def train_xgboost(X_train, X_test, y_train, y_test, feature_cols, tune_hyperpara
     start_time = time.time()
 
     if tune_hyperparams:
-        print("Running hyperparameter tuning with RandomizedSearchCV...")
+        print("Using best hyperparameters from previous tuning...")
 
-        # Parameter distribution with regularization focus
-        param_dist = {
-            # It hit 6, so we start at 6 and go deeper
-            'max_depth': [6, 8, 10, 12],
-            
-            # It hit 7, so we go much higher to see if it wants simpler trees
-            'min_child_weight': [7, 10, 15, 20],
-            
-            # Keep 0.01 since it won, but maybe try slightly faster 0.02
-            'learning_rate': [0.005, 0.01, 0.02],
-            
-            # It wants less data per tree (high variance reduction)
-            'subsample': [0.5, 0.6, 0.7],
-            
-            # It liked 0.8, so center around that
-            'colsample_bytree': [0.7, 0.8, 0.9],
-            
-            # Low learning rate needs MORE trees. 1000 was the limit, go higher.
-            'n_estimators': [1000, 1500, 2000, 3000],
-            
-            # It hit 0.2 (max), so let's try significantly higher regularization
-            'gamma': [0.2, 0.5, 1.0, 2.0]
+        # # Parameter distribution with regularization focus
+        # param_dist = {
+        #     # It hit 6, so we start at 6 and go deeper
+        #     'max_depth': [6, 8, 10, 12],
+        #
+        #     # It hit 7, so we go much higher to see if it wants simpler trees
+        #     'min_child_weight': [7, 10, 15, 20],
+        #
+        #     # Keep 0.01 since it won, but maybe try slightly faster 0.02
+        #     'learning_rate': [0.005, 0.01, 0.02],
+        #
+        #     # It wants less data per tree (high variance reduction)
+        #     'subsample': [0.5, 0.6, 0.7],
+        #
+        #     # It liked 0.8, so center around that
+        #     'colsample_bytree': [0.7, 0.8, 0.9],
+        #
+        #     # Low learning rate needs MORE trees. 1000 was the limit, go higher.
+        #     'n_estimators': [1000, 1500, 2000, 3000],
+        #
+        #     # It hit 0.2 (max), so let's try significantly higher regularization
+        #     'gamma': [0.2, 0.5, 1.0, 2.0]
+        # }
+        #
+        # # Base model
+        # xgb_base = xgb.XGBRegressor(random_state=42, n_jobs=-1, verbosity=1)
+        #
+        # # RandomizedSearchCV
+        # random_search = RandomizedSearchCV(
+        #     xgb_base,
+        #     param_distributions=param_dist,
+        #     n_iter=30,              # Try 30 random combinations
+        #     cv=3,                   # 3-fold cross-validation
+        #     scoring='r2',
+        #     n_jobs=-1,
+        #     verbose=2,
+        #     random_state=42
+        # )
+        #
+        # random_search.fit(X_train, y_train)
+        # model = random_search.best_estimator_
+
+        # Best parameters from hyperparameter tuning (CV R² = 0.7116)
+        best_params = {
+            'subsample': 0.6,
+            'n_estimators': 1000,
+            'min_child_weight': 20,
+            'max_depth': 8,
+            'learning_rate': 0.005,
+            'gamma': 2.0,
+            'colsample_bytree': 0.8
         }
 
-        # Base model
-        xgb_base = xgb.XGBRegressor(random_state=42, n_jobs=-1, verbosity=1)
+        print(f"\nBest parameters:")
+        for param, value in best_params.items():
+            print(f"  {param}: {value}")
 
-        # RandomizedSearchCV
-        random_search = RandomizedSearchCV(
-            xgb_base,
-            param_distributions=param_dist,
-            n_iter=30,              # Try 30 random combinations
-            cv=3,                   # 3-fold cross-validation
-            scoring='r2',
+        model = xgb.XGBRegressor(
+            **best_params,
+            random_state=42,
             n_jobs=-1,
-            verbose=2,
-            random_state=42
+            verbosity=1
         )
 
-        random_search.fit(X_train, y_train)
-        model = random_search.best_estimator_
-
+        model.fit(X_train, y_train, verbose=False)
         train_time = time.time() - start_time
-        print(f"\nBest parameters found:")
-        for param, value in random_search.best_params_.items():
-            print(f"  {param}: {value}")
-        print(f"Best CV R² score: {random_search.best_score_:.4f}")
-        print(f"Training time (including tuning): {train_time:.2f} seconds")
+        print(f"Training time: {train_time:.2f} seconds")
     else:
         model = xgb.XGBRegressor(
             n_estimators=200,

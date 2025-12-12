@@ -56,16 +56,16 @@ General weather forecasts often fail to capture the microclimates of high-elevat
 **Run**: `python train_baseline.py`
 
 #### [train_advanced_models.py](train_advanced_models.py)
-**Purpose**: Train Random Forest and XGBoost models with hyperparameter tuning, compare against baseline
+**Purpose**: Train Random Forest and XGBoost models with optimized hyperparameters, compare against baseline
 **What it does**:
-- Uses RandomizedSearchCV to tune hyperparameters for both Random Forest and XGBoost
-- Random Forest: Searches 30 combinations across n_estimators, max_depth, min_samples_split, max_features, etc.
-- XGBoost: Searches 30 combinations with regularization focus (max_depth, learning_rate, gamma, subsample, etc.)
-- Performs 3-fold cross-validation to find optimal parameters
-- **Best model**: XGBoost (Tuned) achieves R² = 0.711, RMSE = 1.35 inches, MAE = 0.38 inches
-- **Successfully reduced overfitting**: XGBoost train R² decreased from 0.995 → 0.923 while improving test performance
-- Identifies top predictive features (yesterday's precipitation is #1 at 13.8% importance)
-- Evaluates per-resort performance (Mammoth: 0.803, Heavenly: 0.758, Palisades: 0.592)
+- Uses best hyperparameters from extensive RandomizedSearchCV tuning
+- Random Forest: Optimized with n_estimators=500, max_depth=25, min_samples_leaf=8, max_features=0.5
+- XGBoost: Uses heavily regularized configuration (max_depth=8, min_child_weight=20, learning_rate=0.005, gamma=2.0)
+- Performs 3-fold cross-validation during hyperparameter search (CV R² = 0.712 for XGBoost)
+- **Best model**: XGBoost (Tuned) achieves Test R² = 0.704, RMSE = 1.37 inches, MAE = 0.38 inches
+- **Successfully prevented overfitting**: XGBoost Train R² = 0.869 with strong regularization (gamma=2.0, min_child_weight=20)
+- Identifies top predictive features (yesterday's precipitation is #1 at 16.1% importance)
+- Evaluates per-resort performance (Mammoth: 0.810, Heavenly: 0.751, Palisades: 0.573)
 - Generates comparison visualization saved to `model_comparison.png`
 
 **Run**: `python train_advanced_models.py`
@@ -123,10 +123,10 @@ python train_advanced_models.py
 | Model | Train R² | Test R² | RMSE (inches) | MAE (inches) | Improvement vs Baseline |
 |-------|----------|---------|---------------|--------------|------------------------|
 | Linear Regression | 0.530 | 0.559 | 1.67 | 0.57 | - |
-| Random Forest (Tuned) | 0.819 | 0.686 | 1.41 | 0.38 | +22.8% |
+| Random Forest (Tuned) | 0.819 | 0.687 | 1.41 | 0.38 | +22.9% |
 | **XGBoost (Tuned)** | **0.869** | **0.704** | **1.37** | **0.38** | **+26.0%** |
 
-**Key Achievement**: Advanced hyperparameter tuning with aggressive regularization successfully reduced overfitting (XGBoost train R² = 0.869 vs previous 0.923), achieving strong generalization with CV R² = 0.712.
+**Key Achievement**: Aggressive hyperparameter tuning with strong regularization (gamma=2.0, min_child_weight=20, very low learning_rate=0.005) successfully prevented overfitting. XGBoost achieves excellent generalization with Train R² = 0.869, Test R² = 0.704, and CV R² = 0.712.
 
 **Best Hyperparameters (XGBoost)**:
 - `max_depth=8, min_child_weight=20, learning_rate=0.005, gamma=2.0`
