@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.model_selection import RandomizedSearchCV
 import xgboost as xgb
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -123,28 +124,65 @@ def train_linear_regression(X_train, X_test, y_train, y_test):
     wrapped_model = ScaledLinearRegression(model, scaler)
     return evaluate_model(wrapped_model, X_train, X_test, y_train, y_test, "Linear Regression")
 
-def train_random_forest(X_train, X_test, y_train, y_test, feature_cols):
-    """Train Random Forest"""
+def train_random_forest(X_train, X_test, y_train, y_test, feature_cols, tune_hyperparams=True):
+    """Train Random Forest with optional hyperparameter tuning"""
     print("\n" + "=" * 80)
     print("TRAINING RANDOM FOREST")
     print("=" * 80)
 
     start_time = time.time()
-    model = RandomForestRegressor(
-        n_estimators=200,        # Number of trees
-        max_depth=20,            # Maximum depth
-        min_samples_split=10,    # Minimum samples to split
-        min_samples_leaf=4,      # Minimum samples per leaf
-        max_features='sqrt',     # Features per split
-        random_state=42,
-        n_jobs=-1,              # Use all CPU cores
-        verbose=1
-    )
 
-    model.fit(X_train, y_train)
-    train_time = time.time() - start_time
+    if tune_hyperparams:
+        print("Running hyperparameter tuning with RandomizedSearchCV...")
 
-    print(f"Training time: {train_time:.2f} seconds")
+        # Parameter distribution for RandomizedSearchCV
+        param_dist = {
+            'n_estimators': [100, 200, 300, 500],
+            'max_depth': [10, 15, 20, 25, None],        # Limit depth to reduce overfitting
+            'min_samples_split': [5, 10, 20, 30],       # Require more samples to split
+            'min_samples_leaf': [2, 4, 8, 12],          # Require more samples per leaf
+            'max_features': ['sqrt', 'log2', 0.5],      # Limit features per split
+            'max_samples': [0.6, 0.7, 0.8, 0.9]         # Bootstrap sample size
+        }
+
+        # Base model
+        rf_base = RandomForestRegressor(random_state=42, n_jobs=-1)
+
+        # RandomizedSearchCV
+        random_search = RandomizedSearchCV(
+            rf_base,
+            param_distributions=param_dist,
+            n_iter=30,              # Try 30 random combinations
+            cv=3,                   # 3-fold cross-validation
+            scoring='r2',
+            n_jobs=-1,
+            verbose=2,
+            random_state=42
+        )
+
+        random_search.fit(X_train, y_train)
+        model = random_search.best_estimator_
+
+        train_time = time.time() - start_time
+        print(f"\nBest parameters found:")
+        for param, value in random_search.best_params_.items():
+            print(f"  {param}: {value}")
+        print(f"Best CV R² score: {random_search.best_score_:.4f}")
+        print(f"Training time (including tuning): {train_time:.2f} seconds")
+    else:
+        model = RandomForestRegressor(
+            n_estimators=200,
+            max_depth=20,
+            min_samples_split=10,
+            min_samples_leaf=4,
+            max_features='sqrt',
+            random_state=42,
+            n_jobs=-1,
+            verbose=1
+        )
+        model.fit(X_train, y_train)
+        train_time = time.time() - start_time
+        print(f"Training time: {train_time:.2f} seconds")
 
     # Feature importance
     importance_df = pd.DataFrame({
@@ -155,34 +193,73 @@ def train_random_forest(X_train, X_test, y_train, y_test, feature_cols):
     print("\nTop 15 Most Important Features:")
     print(importance_df.head(15).to_string(index=False))
 
-    results = evaluate_model(model, X_train, X_test, y_train, y_test, "Random Forest")
+    model_name = "Random Forest (Tuned)" if tune_hyperparams else "Random Forest"
+    results = evaluate_model(model, X_train, X_test, y_train, y_test, model_name)
     results['feature_importance'] = importance_df
     return results
 
-def train_xgboost(X_train, X_test, y_train, y_test, feature_cols):
-    """Train XGBoost"""
+def train_xgboost(X_train, X_test, y_train, y_test, feature_cols, tune_hyperparams=True):
+    """Train XGBoost with optional hyperparameter tuning"""
     print("\n" + "=" * 80)
     print("TRAINING XGBOOST")
     print("=" * 80)
 
     start_time = time.time()
-    model = xgb.XGBRegressor(
-        n_estimators=200,
-        max_depth=8,
-        learning_rate=0.1,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        min_child_weight=3,
-        gamma=0.1,
-        random_state=42,
-        n_jobs=-1,
-        verbosity=1
-    )
 
-    model.fit(X_train, y_train, verbose=False)
-    train_time = time.time() - start_time
+    if tune_hyperparams:
+        print("Running hyperparameter tuning with RandomizedSearchCV...")
 
-    print(f"Training time: {train_time:.2f} seconds")
+        # Parameter distribution with regularization focus
+        param_dist = {
+            'max_depth': [3, 4, 5, 6],              # Shallower trees
+            'min_child_weight': [1, 3, 5, 7],       # Require more data per leaf
+            'learning_rate': [0.01, 0.05, 0.1],     # Slower learning
+            'subsample': [0.6, 0.7, 0.8, 0.9],      # Random row sampling
+            'colsample_bytree': [0.6, 0.7, 0.8],    # Random feature sampling
+            'n_estimators': [100, 300, 500, 1000],  # More trees (with early stopping)
+            'gamma': [0, 0.1, 0.2]                  # Minimum loss reduction (regularization)
+        }
+
+        # Base model
+        xgb_base = xgb.XGBRegressor(random_state=42, n_jobs=-1, verbosity=1)
+
+        # RandomizedSearchCV
+        random_search = RandomizedSearchCV(
+            xgb_base,
+            param_distributions=param_dist,
+            n_iter=30,              # Try 30 random combinations
+            cv=3,                   # 3-fold cross-validation
+            scoring='r2',
+            n_jobs=-1,
+            verbose=2,
+            random_state=42
+        )
+
+        random_search.fit(X_train, y_train)
+        model = random_search.best_estimator_
+
+        train_time = time.time() - start_time
+        print(f"\nBest parameters found:")
+        for param, value in random_search.best_params_.items():
+            print(f"  {param}: {value}")
+        print(f"Best CV R² score: {random_search.best_score_:.4f}")
+        print(f"Training time (including tuning): {train_time:.2f} seconds")
+    else:
+        model = xgb.XGBRegressor(
+            n_estimators=200,
+            max_depth=8,
+            learning_rate=0.1,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            min_child_weight=3,
+            gamma=0.1,
+            random_state=42,
+            n_jobs=-1,
+            verbosity=1
+        )
+        model.fit(X_train, y_train, verbose=False)
+        train_time = time.time() - start_time
+        print(f"Training time: {train_time:.2f} seconds")
 
     # Feature importance
     importance_df = pd.DataFrame({
@@ -193,8 +270,10 @@ def train_xgboost(X_train, X_test, y_train, y_test, feature_cols):
     print("\nTop 15 Most Important Features:")
     print(importance_df.head(15).to_string(index=False))
 
-    results = evaluate_model(model, X_train, X_test, y_train, y_test, "XGBoost")
+    model_name = "XGBoost (Tuned)" if tune_hyperparams else "XGBoost"
+    results = evaluate_model(model, X_train, X_test, y_train, y_test, model_name)
     results['feature_importance'] = importance_df
+    results['model'] = model  # Save model for later use
     return results
 
 def compare_models(results_list):

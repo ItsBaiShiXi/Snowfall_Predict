@@ -26,7 +26,6 @@ part_list = [
 ]
 elements = ",".join(part_list)
 
-# --- CHANGE 2: Dynamic URL ---
 base_url = (
     "https://wcc.sc.egov.usda.gov/reportGenerator/view_csv/"
     "customSingleStationReport/daily/{station_id}|id=%22%22|name/"
@@ -40,9 +39,8 @@ headers = {
 def fetch_and_clean_station(resort_name, station_id):
     print(f"--- Processing {resort_name} ({station_id}) ---")
 
-    # 1. Construct URL with the new 'elements' variable
+    # 1. Construct URL with the elements variable
     url = base_url.format(station_id=station_id, start=START_DATE, end=END_DATE, elements=elements)
-    # print(f"Requesting URL: {url}") # Uncomment to debug
 
     try:
         # 2. Fetch Data
@@ -63,7 +61,6 @@ def fetch_and_clean_station(resort_name, station_id):
             print("Error: DataFrame is empty after parsing.")
             return None
 
-        # --- CHANGE 3: Update Column Headers to match 'elements' ---
         # The order here MUST match the order in 'part_list' above + Date at the start.
         df.columns = [
             'Date', 
@@ -102,8 +99,7 @@ for resort, snotel_id in stations.items():
 if all_data:
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # Final Cleanup - Ensure we don't drop rows just because wind/soil data is missing
-    # (Only drop if the essential Snow Depth is missing)
+    # Only drop if the essential Snow Depth is missing
     final_df.dropna(subset=['NewSnow_in'], inplace=True)
 
     filename = "nwcc_snow_data.csv"
