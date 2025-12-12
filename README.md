@@ -56,13 +56,16 @@ General weather forecasts often fail to capture the microclimates of high-elevat
 **Run**: `python train_baseline.py`
 
 #### [train_advanced_models.py](train_advanced_models.py)
-**Purpose**: Train Random Forest and XGBoost models, compare against baseline
+**Purpose**: Train Random Forest and XGBoost models with hyperparameter tuning, compare against baseline
 **What it does**:
-- Trains Random Forest (100 trees, max_depth=20) and XGBoost (100 estimators) regressors
-- Compares all three models on same train/test split
-- **Best model**: XGBoost achieves R² = 0.688, RMSE = 1.41 inches, MAE = 0.39 inches
-- Identifies top predictive features (yesterday's precipitation is #1 at 25.8% importance)
-- Evaluates per-resort performance (Mammoth: 0.768, Heavenly: 0.759, Palisades: 0.560)
+- Uses RandomizedSearchCV to tune hyperparameters for both Random Forest and XGBoost
+- Random Forest: Searches 30 combinations across n_estimators, max_depth, min_samples_split, max_features, etc.
+- XGBoost: Searches 30 combinations with regularization focus (max_depth, learning_rate, gamma, subsample, etc.)
+- Performs 3-fold cross-validation to find optimal parameters
+- **Best model**: XGBoost (Tuned) achieves R² = 0.711, RMSE = 1.35 inches, MAE = 0.38 inches
+- **Successfully reduced overfitting**: XGBoost train R² decreased from 0.995 → 0.923 while improving test performance
+- Identifies top predictive features (yesterday's precipitation is #1 at 13.8% importance)
+- Evaluates per-resort performance (Mammoth: 0.803, Heavenly: 0.758, Palisades: 0.592)
 - Generates comparison visualization saved to `model_comparison.png`
 
 **Run**: `python train_advanced_models.py`
@@ -119,15 +122,26 @@ python train_advanced_models.py
 
 ## Results Summary
 
-| Model | Test R² | RMSE (inches) | MAE (inches) |
-|-------|---------|---------------|--------------|
-| Linear Regression | 0.559 | 1.67 | 0.57 |
-| Random Forest | 0.649 | 1.49 | 0.43 |
-| **XGBoost** | **0.688** | **1.41** | **0.39** |
+| Model | Train R² | Test R² | RMSE (inches) | MAE (inches) | Improvement vs Baseline |
+|-------|----------|---------|---------------|--------------|------------------------|
+| Linear Regression | 0.530 | 0.559 | 1.67 | 0.57 | - |
+| Random Forest (Tuned) | 0.819 | 0.687 | 1.41 | 0.38 | +22.9% |
+| **XGBoost (Tuned)** | **0.923** | **0.711** | **1.35** | **0.38** | **+27.2%** |
 
-**Top Predictive Features** (XGBoost):
-1. Precip_lag1 (yesterday's precipitation) - 25.8%
-2. PrecipAccum_rolling_7d_sum - 8.5%
-3. Precip_Liquid_in - 6.3%
-4. SnowDepth_in - 5.9%
-5. NewSnow_lag1 - 4.7%
+**Key Achievement**: Hyperparameter tuning successfully reduced overfitting (XGBoost train R² from 0.995 → 0.923) while improving test performance (+3.3% absolute improvement).
+
+**Best Hyperparameters (XGBoost)**:
+- `max_depth=6, min_child_weight=7, learning_rate=0.01, gamma=0.2`
+- `subsample=0.6, colsample_bytree=0.8, n_estimators=1000`
+
+**Top Predictive Features** (XGBoost Tuned):
+1. Precip_lag1 (yesterday's precipitation) - 13.8%
+2. precip_change_1d (daily precipitation change) - 6.8%
+3. AvgTemp_lag1 (yesterday's avg temperature) - 4.0%
+4. freezing_level (current freezing conditions) - 3.3%
+5. MaxTemp_lag1 (yesterday's max temperature) - 3.2%
+
+**Performance by Resort** (XGBoost Tuned):
+- Mammoth Mountain: R² = 0.803 (best)
+- Heavenly: R² = 0.758
+- Palisades Tahoe: R² = 0.592 (most challenging terrain)
